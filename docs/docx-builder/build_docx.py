@@ -208,8 +208,9 @@ def _numbered(doc, items):
         _add_runs(p, item.get("text", ""), size=s["body"])
 
 
-def _data_table(doc, header, rows, emphasis_rows=None, status_col=None):
+def _data_table(doc, header, rows, emphasis_rows=None, status_col=None, status_fills=None):
     emphasis_rows = set(emphasis_rows or [])
+    status_fills = {k.strip().lower(): v for k, v in (status_fills or {}).items()}
     ncols = len(header)
     table = doc.add_table(rows=1, cols=ncols)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -233,7 +234,9 @@ def _data_table(doc, header, rows, emphasis_rows=None, status_col=None):
                 _shade(cell, CONFIG["table_emphasis_fill"])
             if status_col is not None and j == status_col:
                 label = str(val).strip().lower()
-                if label.startswith("billable") or label == "billable":
+                if label in status_fills:
+                    _shade(cell, status_fills[label])
+                elif label.startswith("billable") or label == "billable":
                     _shade(cell, CONFIG["billable_fill"])
                 elif "not" in label:
                     _shade(cell, CONFIG["not_billable_fill"])
@@ -377,7 +380,8 @@ def build(content, out_path):
             doc.add_paragraph().paragraph_format.space_after = Pt(4)
         elif btype == "status_table":
             _data_table(doc, block["header"], block.get("rows", []),
-                        status_col=block.get("status_col"))
+                        status_col=block.get("status_col"),
+                        status_fills=block.get("status_fills"))
             doc.add_paragraph().paragraph_format.space_after = Pt(4)
         elif btype == "signature":
             _signature_block(doc, block.get("parties", []))
